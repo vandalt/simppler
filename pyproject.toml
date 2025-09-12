@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "simppler"
+authors = [
+  { name="Thomas Vandal", email="thomas.vandal@umontreal.ca" },
+]
+description = "simpple Radial Velocities"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+]
+license = "MIT"
+license-files = ["LICENSE"]
+dynamic = ["version"]
+dependencies = [
+  "simpple",
+  "matplotlib",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[project.optional-dependencies]
+docs = [
+  "sphinx",
+  "myst-parser",
+  "myst-nb",
+  "sphinx-book-theme",
+]
+test = ["pytest"]
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/simppler/_version.py"
+
+[project.urls]
+"Homepage" = "https://simppler.readthedocs.io"
+"Repository" = "https://github.com/vandalt/simppler"
+"Bug Tracker" = "https://github.com/vandalt/simppler/issues"
