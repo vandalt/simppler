@@ -12,6 +12,19 @@ from simppler.basis import BASIS_DICT, BASIS_PARAM_DICT, Basis
 
 
 class RVModel(ForwardModel):
+    """RV Model
+    `simpple.model.Model <https://simpple.readthedocs.io/en/stable/api/model.html#simpple.model.ForwardModel>` subclass for RV models.
+
+    :param parameters: Model parameters specified as a dictionary of `simpple.distribution.Distribution <https://simpple.readthedocs.io/en/stable/api/distributions.html>` objects.
+    :param num_planets: Number of planets in the model
+    :param t: Array of time at which RV observations were taken
+    :param rv: Array of RV observations in m/s
+    :param erv: Array of uncertainty on RV observations in m/s
+    :param basis: Name, parameter str or Basis class of the fitting basis to use. See also :mod:`simppler.basis`. The :class:`simppler.basis.DefaultBasis` is used by default.
+    :param tmod: Array of times at which to generate the model when plotting. Set to `t` by default.
+    :param time_base: Time base to use as the "zero time" for trend components in the model.
+    """
+
     def __init__(
         self,
         parameters: dict[str, Distribution],
