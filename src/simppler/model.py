@@ -8,7 +8,7 @@ with warnings.catch_warnings():
     from radvel import kepler
 import numpy as np
 
-from simppler import basis
+from simppler.basis import BASIS_DICT, BASIS_PARAM_DICT, Basis
 
 
 class RVModel(ForwardModel):
@@ -19,7 +19,7 @@ class RVModel(ForwardModel):
         t: np.ndarray,
         rv: np.ndarray,
         erv: np.ndarray,
-        basis_name: str,
+        basis: str | Basis = "default",
         tmod: np.ndarray | None = None,
         time_base: float = 0.0,
     ):
@@ -34,7 +34,19 @@ class RVModel(ForwardModel):
             self.tmod = self.t.copy()
         self.rv = rv
         self.erv = erv
-        self.basis = basis_name
+        if isinstance(basis, Basis):
+            self.basis = basis
+        elif basis in BASIS_DICT:
+            self.basis = BASIS_DICT[basis]()
+        elif basis in BASIS_PARAM_DICT:
+            self.basis = BASIS_PARAM_DICT[basis]()
+        else:
+            basis_names = list(BASIS_DICT)
+            basis_pstrs = list(BASIS_PARAM_DICT)
+            raise ValueError(
+                f"Unknown basis {basis}. Must be a Basis object"
+                f" one of {basis_names} or one of {basis_pstrs}"
+            )
         self.time_base = time_base
 
     def _log_likelihood(self, p: dict) -> float:
@@ -44,10 +56,9 @@ class RVModel(ForwardModel):
 
     def _forward(self, params: dict, t: np.ndarray, planets: list[int] | None = None):
         vel = np.zeros(len(t))
-        params_synth = basis.to_synth(params, self.num_planets, self.basis)
+        params_synth = self.basis.to_synth(params, self.num_planets)
         if planets is None:
             planets = range(1, self.num_planets + 1)
-
 
         for num_planet in planets:
             per = params_synth[f"per{num_planet}"]
@@ -77,7 +88,7 @@ class RVModel(ForwardModel):
                     f"Distribution of type {type(pdist)} cannot be converted to radvel"
                 )
 
-        radvel_params = radvel.Parameters(self.num_planets, basis=self.basis)
+        radvel_params = radvel.Parameters(self.num_planets, basis=self.basis.pstr)
         priors = []
         for i, (pname, pdist) in enumerate(self.parameters.items()):
             if init_values == "sample":
