@@ -131,6 +131,16 @@ def plot_phase(
     all_planets = list(range(1, model.num_planets + 1))
     if planets is None:
         planets = all_planets.copy()
+    elif len(planets) == 0:
+        raise ValueError(
+            "'planets' cannot be an empty list. It must contain at least one valid planet index"
+        )
+    else:
+        for ipl in planets:
+            if ipl not in all_planets:
+                raise ValueError(
+                    f"planet {ipl} is not a valid planet for this model. Available indices are {all_planets}"
+                )
 
     rng = np.random.default_rng()
 
