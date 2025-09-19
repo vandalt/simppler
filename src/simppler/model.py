@@ -2,6 +2,9 @@ import warnings
 from simpple.model import ForwardModel
 from simpple.distributions import Distribution
 import simpple.distributions as sdist
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from radvel.posterior import Posterior
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=ImportWarning, module="radvel")
@@ -38,7 +41,6 @@ class RVModel(ForwardModel):
     ):
         super().__init__(parameters)
 
-        # TODO: Check for parameters
         self.num_planets = num_planets
         self.t = t
         if tmod is not None:
@@ -62,6 +64,18 @@ class RVModel(ForwardModel):
             )
         self.time_base = time_base
 
+        expected_prefixes = self.basis.pstr.split(" ")
+        expected_params = [prefix + str(ipl) for prefix in expected_prefixes for ipl in range(1, self.num_planets+1)]
+        for pname in expected_params:
+            if pname not in parameters:
+                raise KeyError(f"Required parameter {pname} not found in parameters dictionary with keys {parameters.keys()}")
+        optional_params = ["jit", "gamma", "dvdt", "curv"]
+        allowed_params = expected_params + optional_params
+        for pname in parameters:
+            if pname not in allowed_params:
+                raise ValueError(f"Unexpected parameter {pname}. Allowed parameters are {allowed_params}")
+
+
     def _log_likelihood(self, p: dict) -> float:
         rvmod = self.forward(p, self.t)
         s2 = self.erv**2 + p.get("jit", 0.0) ** 2
@@ -81,12 +95,12 @@ class RVModel(ForwardModel):
             k = params_synth[f"k{num_planet}"]
             orbel_synth = np.array([per, tp, e, w, k])
             vel += kepler.rv_drive(t, orbel_synth)
-        vel += params["gamma"]
-        vel += params["dvdt"] * (t - self.time_base)
-        vel += params["curv"] * (t - self.time_base) ** 2
+        vel += params.get("gamma", 0.0)
+        vel += params.get("dvdt", 0.0) * (t - self.time_base)
+        vel += params.get("curv", 0.0) * (t - self.time_base) ** 2
         return vel
 
-    def to_radvel(self, init_values: str | np.ndarray = "sample"):
+    def to_radvel(self, init_values: str | np.ndarray = "sample") -> "Posterior":
         import radvel
 
         def _convert_dist(pname: str, pdist: Distribution) -> radvel.prior.Prior:
