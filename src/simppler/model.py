@@ -35,6 +35,7 @@ class RVModel(ForwardModel):
         t: np.ndarray,
         rv: np.ndarray,
         erv: np.ndarray,
+        inst: np.ndarray | None = None,
         basis: str | Basis = "default",
         tmod: np.ndarray | None = None,
         time_base: float = 0.0,
@@ -69,7 +70,24 @@ class RVModel(ForwardModel):
         for pname in expected_params:
             if pname not in parameters:
                 raise KeyError(f"Required parameter {pname} not found in parameters dictionary with keys {parameters.keys()}")
-        optional_params = ["jit", "gamma", "dvdt", "curv"]
+
+        self.inst = inst
+        if self.inst is not None:
+            self.inst_unique = list(np.unique(self.inst))
+        else:
+            self.inst_unique = None
+
+        optional_params_nosuffix = ["jit", "gamma", "dvdt", "curv"]
+        if self.inst is not None:
+            optional_params = [
+                f"{pname}_{iname}"
+                for pname in optional_params_nosuffix
+                for iname in self.inst_unique
+            ]
+        else:
+            optional_params = optional_params_nosuffix
+
+
         allowed_params = expected_params + optional_params
         for pname in parameters:
             if pname not in allowed_params:
@@ -78,10 +96,23 @@ class RVModel(ForwardModel):
 
     def _log_likelihood(self, p: dict) -> float:
         rvmod = self.forward(p, self.t)
-        s2 = self.erv**2 + p.get("jit", 0.0) ** 2
+        if self.inst is None:
+            s2 = self.erv**2 + p.get("jit", 0.0) ** 2
+        else:
+            s2 = self.erv**2
+            for inst in self.inst_unique:
+                inst_mask = self.inst == inst
+                s2[inst_mask] += p.get(f"jit_{inst}", 0.0) ** 2
         return -0.5 * np.sum(np.log(2 * np.pi * s2) + (self.rv - rvmod) ** 2 / s2)
 
-    def _forward(self, params: dict, t: np.ndarray, planets: list[int] | None = None):
+    def _forward(
+        self,
+        params: dict,
+        t: np.ndarray,
+        planets: list[int] | None = None,
+        include_sys: bool = True,
+        inst: str | list[str] | None = None,
+    ):
         vel = np.zeros(len(t))
         params_synth = self.basis.to_synth(params, self.num_planets)
         if planets is None:
@@ -95,9 +126,21 @@ class RVModel(ForwardModel):
             k = params_synth[f"k{num_planet}"]
             orbel_synth = np.array([per, tp, e, w, k])
             vel += kepler.rv_drive(t, orbel_synth)
-        vel += params.get("gamma", 0.0)
-        vel += params.get("dvdt", 0.0) * (t - self.time_base)
-        vel += params.get("curv", 0.0) * (t - self.time_base) ** 2
+
+        if include_sys:
+            if self.inst is None:
+                vel += params.get("gamma", 0.0)
+                vel += params.get("dvdt", 0.0) * (t - self.time_base)
+                vel += params.get("curv", 0.0) * (t - self.time_base) ** 2
+            else:
+                use_inst = self.inst_unique if inst is None else inst
+                if isinstance(use_inst, str):
+                    use_inst = [use_inst]
+                for inst in use_inst:
+                    inst_mask = self.inst == inst
+                    vel[inst_mask] += params.get(f"gamma_{inst}", 0.0)
+                    vel[inst_mask] += params.get(f"dvdt_{inst}", 0.0) * (t[inst_mask] - self.time_base)
+                    vel[inst_mask] += params.get(f"curv_{inst}", 0.0) * (t[inst_mask] - self.time_base) ** 2
         return vel
 
     def to_radvel(self, init_values: str | np.ndarray = "sample") -> "Posterior":

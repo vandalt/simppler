@@ -37,6 +37,9 @@ docs = [
   "matplotlib",
   "scipy",
   "emcee",
+  "corner",
+  "arviz",
+  "ultranest",
   "tqdm",
 ]
 test = ["pytest"]
