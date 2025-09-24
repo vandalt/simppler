@@ -49,7 +49,7 @@ def plot_rv(
         axs = [axs]
         axd = axs[0]
     if model.inst is None:
-        ninst = 1
+        ninst = 0
         axd.errorbar(
             model.t, model.rv, yerr=model.erv, fmt="k.", capsize=2, mfc="w", label="Data"
         )
@@ -90,17 +90,27 @@ def plot_rv(
             mod_rv = model.forward(parameters, model.t)
             axd.plot(mod_times, model.forward(parameters, mod_times, include_sys=False), label="Model", color=f"C{ninst}")
             if residuals:
-                for inst in plot_inst:
-                    inst_mask = model.inst == inst
+                if model.inst is None:
                     axr.errorbar(
-                        model.t[inst_mask],
-                        model.rv[inst_mask] - mod_rv[inst_mask],
-                        yerr=model.erv[inst_mask],
-                        fmt=".",
+                        model.t,
+                        model.rv - mod_rv,
+                        yerr=model.erv,
+                        fmt="k.",
                         capsize=2,
                         mfc="w",
-                        label=f"{inst}",
                     )
+                else:
+                    for inst in plot_inst:
+                        inst_mask = model.inst == inst
+                        axr.errorbar(
+                            model.t[inst_mask],
+                            model.rv[inst_mask] - mod_rv[inst_mask],
+                            yerr=model.erv[inst_mask],
+                            fmt=".",
+                            capsize=2,
+                            mfc="w",
+                            label=f"{inst}",
+                        )
         elif ndim == 2:
             posterior_preds = model.get_posterior_pred(
                 parameters, n_samples, mod_times, include_sys=False
@@ -116,16 +126,31 @@ def plot_rv(
                     alpha=0.1,
                     label="Model samples" if i == 0 else None,
                 )
-                axr.errorbar(
-                    model.t[inst_mask],
-                    model.rv[inst_mask] - posterior_preds_data[i][inst_mask],
-                    yerr=model.erv[inst_mask],
-                    alpha=0.1,
-                    fmt="k.",
-                    capsize=2,
-                    mfc="w",
-                    label="Data",
-                )
+                if residuals:
+                    if model.inst is None:
+                        axr.errorbar(
+                            model.t,
+                            model.rv - posterior_preds_data[i],
+                            yerr=model.erv,
+                            alpha=0.1,
+                            fmt="k.",
+                            capsize=2,
+                            mfc="w",
+                            label=f"{inst}",
+                        )
+                    else:
+                        for inst_ind, inst in enumerate(plot_inst):
+                            inst_mask = model.inst == inst
+                            axr.errorbar(
+                                model.t[inst_mask],
+                                model.rv[inst_mask] - posterior_preds_data[i][inst_mask],
+                                yerr=model.erv[inst_mask],
+                                alpha=0.1,
+                                fmt=f"C{inst_ind}.",
+                                capsize=2,
+                                mfc="w",
+                                label=f"{inst}",
+                            )
         else:
             raise ValueError(
                 f"Unexpected dimension {ndim} for parameters. Should be 1 or 2."
@@ -208,7 +233,8 @@ def plot_phase(
         phase_inds = np.argsort(phase)
         phase_rv = phase_rv[phase_inds]
         phase_erv = phase_erv[phase_inds]
-        phase_inst = phase_inst[phase_inds]
+        if model.inst is not None:
+            phase_inst = phase_inst[phase_inds]
         phase = phase[phase_inds]
         mod_others_data = mod_others_data[phase_inds]
 

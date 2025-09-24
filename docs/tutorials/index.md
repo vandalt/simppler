@@ -5,4 +5,5 @@
 
 k2-24-mcmc.ipynb
 radvel-comparison
+multi-instrument
 ```
