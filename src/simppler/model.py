@@ -1,4 +1,3 @@
-import warnings
 from simpple.model import ForwardModel
 from simpple.distributions import Distribution
 import simpple.distributions as sdist
@@ -6,11 +5,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from radvel.posterior import Posterior
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=ImportWarning, module="radvel")
-    from radvel import kepler
 import numpy as np
 
+from simppler import kepler
 from simppler.basis import BASIS_DICT, BASIS_PARAM_DICT, Basis
 
 
