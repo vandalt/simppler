@@ -37,7 +37,8 @@ docs = [
   "matplotlib",
   "scipy",
   # TODO: Use PyPI branch when release with new tqdm is there
-  "emcee@git+https://github.com/dfm/emcee",
+  # "emcee@git+https://github.com/dfm/emcee",
+  "emcee",
   "corner",
   "arviz",
   "ultranest",
