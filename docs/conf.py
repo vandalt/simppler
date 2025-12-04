@@ -18,6 +18,7 @@ release = simppler.__version__
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
     "myst_nb",
 ]
 
@@ -26,7 +27,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for myst-nb -----------------------------------------------------
 # Execute manually to render \r properly
-nb_execution_mode = "off"
+nb_execution_mode = "auto"
 nb_execution_timeout = -1
 
 
